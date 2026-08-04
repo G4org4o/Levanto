@@ -17,13 +17,15 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_TO = process.env.EMAIL_TO;
 const EMAIL_FROM = process.env.EMAIL_FROM;
 
-// Quante ore in avanti guardare ad ogni esecuzione (copre l'intera giornata
-// anche se lo script gira una volta sola, e si auto-corregge ad ogni run
-// successivo perché i dati vengono ri-scaricati aggiornati).
-const LOOKAHEAD_HOURS = 24;
+// Quante ore in avanti guardare ad ogni esecuzione: copriamo il giorno
+// corrente più i due giorni successivi, così l'alert può essere inviato
+// con anticipo e non solo per il giorno stesso.
+const LOOKAHEAD_HOURS = 72;
 
-function todayISO(timezone) {
-  return new Date().toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
+function dateISO(timezone, offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
 }
 
 // Gestisce range di direzione che possono "attraversare" lo 0/360
@@ -47,7 +49,7 @@ async function fetchMarine(lat, lon, timezone) {
   url.searchParams.set("longitude", lon);
   url.searchParams.set("hourly", "wave_height,wave_period,wave_direction");
   url.searchParams.set("timezone", timezone);
-  url.searchParams.set("forecast_days", "2");
+  url.searchParams.set("forecast_days", "3");
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo Marine API error: ${res.status}`);
@@ -61,7 +63,7 @@ async function fetchWind(lat, lon, timezone) {
   url.searchParams.set("hourly", "wind_speed_10m,wind_direction_10m");
   url.searchParams.set("wind_speed_unit", "kn");
   url.searchParams.set("timezone", timezone);
-  url.searchParams.set("forecast_days", "2");
+  url.searchParams.set("forecast_days", "3");
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo Weather API error: ${res.status}`);
@@ -130,7 +132,7 @@ function buildEmailHTML(cfg, goodHours, bestHour) {
 
   return `
   <div style="font-family:Helvetica,Arial,sans-serif;background:#0b2027;color:#eef6f4;padding:24px;">
-    <h2 style="margin:0 0 4px;color:#7fd9c4;">🌊 Oggi si può surfare a ${cfg.spot.name}</h2>
+    <h2 style="margin:0 0 4px;color:#7fd9c4;">🌊 Nei prossimi 2 giorni si può surfare a ${cfg.spot.name}</h2>
     <p style="margin:0 0 16px;color:#b7cfc9;">
       Ora migliore: <strong>${formatHourLabel(bestHour.time, cfg.spot.timezone)}</strong> —
       onda ${bestHour.waveHeight.toFixed(1)} m, periodo ${bestHour.wavePeriod.toFixed(0)} s,
@@ -166,7 +168,7 @@ async function sendEmail(cfg, goodHours, bestHour) {
     body: JSON.stringify({
       from: EMAIL_FROM,
       to: [EMAIL_TO],
-      subject: `🌊 Surf ok a ${cfg.spot.name} oggi`,
+      subject: `🌊 Surf ok a ${cfg.spot.name} nei prossimi 2 giorni`,
       html: buildEmailHTML(cfg, goodHours, bestHour),
     }),
   });
@@ -187,24 +189,29 @@ async function main() {
   ]);
 
   const merged = mergeHourly(marine, wind).slice(0, LOOKAHEAD_HOURS);
-  const today = todayISO(cfg.spot.timezone);
+  const startDate = dateISO(cfg.spot.timezone, 1);
+  const endDate = dateISO(cfg.spot.timezone, 2);
 
-  // Considera solo le ore che appartengono ancora alla giornata odierna,
-  // così l'email riguarda sempre "oggi" e non condizioni di domani.
-  const todaysHours = merged.filter((h) => h.time.startsWith(today));
-  const goodHours = todaysHours.filter((h) => isSurfable(h, cfg));
+  // Considera solo le ore che rientrano nei prossimi due giorni,
+  // escludendo il giorno corrente.
+  const futureHours = merged.filter((h) => {
+    const hourDate = h.time.split("T")[0];
+    return hourDate >= startDate && hourDate <= endDate;
+  });
+  const goodHours = futureHours.filter((h) => isSurfable(h, cfg));
 
   if (goodHours.length === 0) {
-    console.log(`[${today}] Nessuna finestra surfabile oggi a ${cfg.spot.name}.`);
-    return;
-  }
-
-  if (state.last_notified_date === today) {
-    console.log(`[${today}] Condizioni buone, ma notifica già inviata oggi. Skip.`);
+    console.log(`[${startDate} → ${endDate}] Nessuna finestra surfabile nei prossimi 2 giorni a ${cfg.spot.name}.`);
     return;
   }
 
   const bestHour = [...goodHours].sort((a, b) => score(b, cfg) - score(a, cfg))[0];
+  const bestHourDate = bestHour.time.split("T")[0];
+
+  if (state.last_notified_date === bestHourDate) {
+    console.log(`[${bestHourDate}] Condizioni buone, ma notifica già inviata per questo giorno. Skip.`);
+    return;
+  }
 
   if (!RESEND_API_KEY || !EMAIL_TO || !EMAIL_FROM) {
     console.log("RESEND_API_KEY / EMAIL_TO / EMAIL_FROM non configurati: skip invio email.");
@@ -213,9 +220,9 @@ async function main() {
   }
 
   await sendEmail(cfg, goodHours, bestHour);
-  console.log(`[${today}] Email inviata: ${goodHours.length} ore surfabili trovate.`);
+  console.log(`[${bestHourDate}] Email inviata: ${goodHours.length} ore surfabili trovate nei prossimi 2 giorni.`);
 
-  state.last_notified_date = today;
+  state.last_notified_date = bestHourDate;
   await writeFile(STATE_PATH, JSON.stringify(state, null, 2) + "\n", "utf-8");
 }
 
