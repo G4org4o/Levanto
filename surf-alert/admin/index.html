@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Surf Alert — Levanto</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Surf Alert</p>
+  <h1>Levanto</h1>
+  <p class="sub">Condizioni live e soglie per la notifica via email.</p>
+
+  <div class="card">
+    <h2>Condizioni attuali</h2>
+    <div id="statusPill" class="status-pill"><span class="dot"></span><span id="statusText">Carico dati…</span></div>
+    <div class="live-grid">
+      <div class="stat"><div class="val" id="liveWave">—</div><div class="lbl">Onda (m)</div></div>
+      <div class="stat"><div class="val" id="livePeriod">—</div><div class="lbl">Periodo (s)</div></div>
+      <div class="stat"><div class="val" id="liveWind">—</div><div class="lbl">Vento (kts)</div></div>
+      <div class="stat"><div class="val" id="liveWindDir">—</div><div class="lbl">Direzione vento</div></div>
+    </div>
+  </div>
+
+  <div class="wave-divider"></div>
+
+  <div class="card">
+    <h2>Soglie di notifica</h2>
+    <div class="row2">
+      <div class="field">
+        <label for="waveMin">Onda minima (m)</label>
+        <input type="number" step="0.1" id="waveMin" />
+      </div>
+      <div class="field">
+        <label for="waveMax">Onda massima (m)</label>
+        <input type="number" step="0.1" id="waveMax" />
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="periodMin">Periodo minimo (s)</label>
+        <input type="number" step="1" id="periodMin" />
+      </div>
+      <div class="field">
+        <label for="windMax">Vento massimo (kts)</label>
+        <input type="number" step="1" id="windMax" />
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="dirFrom">Direzione vento ideale — da (°)</label>
+        <input type="number" step="1" min="0" max="359" id="dirFrom" />
+      </div>
+      <div class="field">
+        <label for="dirTo">Direzione vento ideale — a (°)</label>
+        <input type="number" step="1" min="0" max="359" id="dirTo" />
+      </div>
+    </div>
+    <p class="hint">0°=N, 90°=E, 180°=S, 270°=O. L'intervallo può attraversare lo 0 (es. da 320 a 40).</p>
+  </div>
+
+  <div class="card">
+    <h2>Salva su GitHub</h2>
+    <div class="field">
+      <label for="repoOwner">Repository (owner/nome)</label>
+      <input type="text" id="repoOwner" placeholder="tuo-utente/surf-alert" />
+    </div>
+    <div class="field">
+      <label for="ghToken">Personal Access Token GitHub</label>
+      <input type="password" id="ghToken" placeholder="Incolla qui il token (non viene salvato)" />
+      <p class="hint">Serve un token con permesso <code>Contents: Read and write</code> sul repo. Non lasciare la pagina aperta su un dispositivo condiviso: il token resta solo in memoria in questa scheda.</p>
+    </div>
+    <button id="saveBtn">Salva soglie</button>
+    <button id="reloadBtn" class="ghost" type="button" style="margin-left:8px;">Ricarica dal repo</button>
+    <div id="saveMsg" class="msg"></div>
+  </div>
+
+  <p class="setup-note">
+    La prima volta: crea il repo su GitHub con dentro questi file, poi apri questa pagina
+    (anche localmente, o via GitHub Pages) e inserisci <code>owner/repo</code> e un token
+    con accesso al repo per iniziare a modificare le soglie da qui.
+  </p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

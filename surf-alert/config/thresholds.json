@@ -1,0 +1,15 @@
+{
+  "spot": {
+    "name": "Levanto",
+    "lat": 44.1667,
+    "lon": 9.6167,
+    "timezone": "Europe/Rome"
+  },
+  "wave_height_min_m": 0.5,
+  "wave_height_max_m": 2.5,
+  "wave_period_min_s": 5,
+  "wind_speed_max_kts": 15,
+  "wind_direction_ideal_from_deg": 0,
+  "wind_direction_ideal_to_deg": 90,
+  "notes": "Direzione vento espressa in gradi (0=N, 90=E, 180=S, 270=O). L'intervallo puo' attraversare lo 0 (es. from 320 to 40)."
+}

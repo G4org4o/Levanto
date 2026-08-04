@@ -1,0 +1,13 @@
+{
+  "name": "surf-alert",
+  "version": "1.0.0",
+  "description": "Notifiche email quando le condizioni di vento e onde sono buone per il surf a Levanto.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node scripts/check-surf.mjs"
+  },
+  "license": "MIT"
+}
